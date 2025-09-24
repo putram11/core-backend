@@ -1,23 +1,35 @@
 # Core Backend Development Commands
 
-# Set up and run the development environment
+# Set up and run the development environment with logs
 up:
     docker-compose -f docker-compose.dev.yml up --build -d
     @echo "🚀 Development environment is running at http://localhost:8000"
     @echo "📊 Admin panel: http://localhost:8000/admin"
-    @echo "� API Docs (Swagger): http://localhost:8000/api/docs/"
+    @echo "📋 API Docs (Swagger): http://localhost:8000/api/docs/"
     @echo "📖 API Docs (ReDoc): http://localhost:8000/api/redoc/"
     @echo "🔍 Health Check: http://localhost:8000/api/health/"
-    @echo "�🗄️  PostgreSQL: localhost:5432"
+    @echo "🗄️  PostgreSQL: localhost:5432"
     @echo "🔥 Redis: localhost:6379"
+    @echo ""
+    @echo "📄 Showing logs (Ctrl+C to stop watching logs):"
+    @sleep 3
+    docker-compose -f docker-compose.dev.yml logs -f web
 
 # Stop all services
 down:
     docker-compose -f docker-compose.dev.yml down
 
+# Build without running
+build:
+    docker-compose -f docker-compose.dev.yml build --no-cache
+
 # View logs
 logs service="web":
     docker-compose -f docker-compose.dev.yml logs -f {{service}}
+
+# View all logs (web, db, redis)
+logs-all:
+    docker-compose -f docker-compose.dev.yml logs -f
 
 # Run Django management commands
 manage cmd:
@@ -59,78 +71,56 @@ check-format:
 lint:
     docker-compose -f docker-compose.dev.yml exec web flake8 .
 
-# Check import sorting
+# Check imports
 check-imports:
     docker-compose -f docker-compose.dev.yml exec web isort --check-only .
 
-# Sort imports
-sort-imports:
+# Fix imports
+fix-imports:
     docker-compose -f docker-compose.dev.yml exec web isort .
 
 # Run all quality checks
-quality: check-format check-imports lint
+quality-check:
+    just check-format
+    just check-imports
+    just lint
+    just test
 
-# Open shell in web container
+# Clean up containers and images
+clean:
+    docker-compose -f docker-compose.dev.yml down -v
+    docker system prune -f
+
+# Enter web container shell
 shell:
-    docker-compose -f docker-compose.dev.yml exec web python manage.py shell
-
-# Open bash in web container
-bash:
     docker-compose -f docker-compose.dev.yml exec web bash
 
-# Reset database (WARNING: This will delete all data)
-reset-db:
-    docker-compose -f docker-compose.dev.yml down
-    docker volume rm core-backend_postgres_data || true
-    just up
-    just migrate
-    @echo "🗑️  Database reset complete"
+# Enter postgres shell
+db-shell:
+    docker-compose -f docker-compose.dev.yml exec db psql -U postgres -d core_backend
+
+# Run production build
+build-prod:
+    docker-compose -f docker-compose.prod.yml build
 
 # Backup database
 backup:
-    docker-compose -f docker-compose.dev.yml exec db pg_dump -U postgres core_backend_dev > backup_$(date +%Y%m%d_%H%M%S).sql
-    @echo "💾 Database backed up"
+    mkdir -p backups
+    docker-compose -f docker-compose.dev.yml exec db pg_dump -U postgres core_backend > backups/backup_$(date +%Y%m%d_%H%M%S).sql
 
-# Show running services
-ps:
+# Restore database from backup
+restore file:
+    docker-compose -f docker-compose.dev.yml exec db psql -U postgres core_backend < {{file}}
+
+# Show container status
+status:
     docker-compose -f docker-compose.dev.yml ps
 
-# Restart specific service
-restart service:
-    docker-compose -f docker-compose.dev.yml restart {{service}}
+# Show resource usage
+stats:
+    docker stats
 
-# Build without cache
-build:
-    docker-compose -f docker-compose.dev.yml build --no-cache
-
-# Clean up unused Docker resources
-clean:
-    docker system prune -f
-    docker volume prune -f
-
-# Show help
-help:
-    @echo "🚀 Core Backend Development Commands"
-    @echo ""
-    @echo "Main commands:"
-    @echo "  just up           - Start development environment"
-    @echo "  just down         - Stop all services"
-    @echo "  just logs [service] - View logs (default: web)"
-    @echo ""
-    @echo "Development:"
-    @echo "  just migrate      - Run database migrations"
-    @echo "  just superuser    - Create superuser"
-    @echo "  just shell        - Open Django shell"
-    @echo "  just bash         - Open bash in web container"
-    @echo ""
-    @echo "Testing & Quality:"
-    @echo "  just test         - Run tests"
-    @echo "  just test-coverage - Run tests with coverage"
-    @echo "  just quality      - Run all quality checks"
-    @echo "  just format       - Format code with black"
-    @echo "  just lint         - Run flake8 linting"
-    @echo ""
-    @echo "Utilities:"
-    @echo "  just reset-db     - Reset database (⚠️  deletes all data)"
-    @echo "  just backup       - Backup database"
-    @echo "  just clean        - Clean up Docker resources"
+# Update dependencies
+update-deps:
+    pip-compile requirements.in
+    pip-compile requirements-dev.in
