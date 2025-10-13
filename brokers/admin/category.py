@@ -12,12 +12,15 @@ class CategoryAdmin(ModelAdmin):
     list_filter = ['is_active', 'is_featured', 'parent', 'created_at']
     search_fields = ['name', 'description']
     readonly_fields = ['slug', 'created_at', 'updated_at', 'full_path']
-    prepopulated_fields = {'slug': ('name',)}
     list_editable = ['sort_order', 'is_active', 'is_featured']
     
     fieldsets = [
         ('Informasi Dasar', {
-            'fields': ['name', 'slug', 'parent', 'description', 'full_path']
+            'fields': ['name', 'parent', 'description']
+        }),
+        ('Auto Generated', {
+            'fields': ['slug', 'full_path'],
+            'classes': ['collapse']
         }),
         ('Tampilan', {
             'fields': ['image', 'icon', 'color']
@@ -63,3 +66,20 @@ class CategoryAdmin(ModelAdmin):
             url = reverse('admin:brokers_product_changelist') + f'?category__id__exact={obj.id}'
             return format_html('<a href="{}">{} produk</a>', url, count)
         return '0 produk'
+    
+    # EKSPLISIT PERMISSIONS UNTUK CRUD  
+    def has_add_permission(self, request):
+        """PASTIKAN BUTTON CREATE CATEGORY MUNCUL!"""
+        return True
+    
+    def has_change_permission(self, request, obj=None):
+        """PASTIKAN BISA EDIT CATEGORY!"""
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
+        """PASTIKAN BISA DELETE CATEGORY!"""
+        return True
+    
+    def has_view_permission(self, request, obj=None):
+        """PASTIKAN BISA VIEW CATEGORY!"""
+        return True

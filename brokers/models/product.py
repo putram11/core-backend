@@ -117,6 +117,9 @@ class Product(models.Model):
     @property
     def formatted_price(self):
         """Format price based on currency"""
+        if not self.price:
+            return "Harga belum diset"
+        
         if self.currency == 'IDR':
             return f"Rp {self.price:,.0f}"
         elif self.currency == 'USD':

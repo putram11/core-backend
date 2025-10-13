@@ -32,7 +32,11 @@ class ProductAdmin(ModelAdmin):
     
     fieldsets = [
         ('Informasi Dasar', {
-            'fields': ['title', 'slug', 'category', 'seller']
+            'fields': ['title', 'category', 'seller']
+        }),
+        ('Auto Generated', {
+            'fields': ['slug'],
+            'classes': ['collapse']
         }),
         ('Detail Produk', {
             'fields': [
@@ -53,9 +57,12 @@ class ProductAdmin(ModelAdmin):
         ('Kontak', {
             'fields': [
                 ('contact_name', 'contact_phone'),
-                'contact_email',
-                'whatsapp_link'
+                'contact_email'
             ]
+        }),
+        ('Link WhatsApp', {
+            'fields': ['whatsapp_link'],
+            'classes': ['collapse']
         }),
         ('Deskripsi', {
             'fields': ['description']
@@ -123,6 +130,23 @@ class ProductAdmin(ModelAdmin):
         queryset.update(is_featured=True)
         self.message_user(request, f"{queryset.count()} produk ditandai sebagai unggulan.")
     mark_as_featured.short_description = "Tandai sebagai produk unggulan"
+    
+    # EKSPLISIT PERMISSIONS UNTUK CRUD
+    def has_add_permission(self, request):
+        """PASTIKAN BUTTON CREATE MUNCUL!"""
+        return True
+    
+    def has_change_permission(self, request, obj=None):
+        """PASTIKAN BISA EDIT!"""
+        return True
+    
+    def has_delete_permission(self, request, obj=None):
+        """PASTIKAN BISA DELETE!"""
+        return True
+    
+    def has_view_permission(self, request, obj=None):
+        """PASTIKAN BISA VIEW!"""
+        return True
 
 
 @admin.register(ProductImage)
