@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import environ
 from datetime import timedelta
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,6 +45,7 @@ ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
 # Application definition
 DJANGO_APPS = [
+    'unfold',  # Unfold admin theme (must be before django.contrib.admin)
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -319,4 +323,129 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+# =============================================================================
+# UNFOLD ADMIN CONFIGURATION
+# =============================================================================
+
+UNFOLD = {
+    "SITE_TITLE": "Core Backend Admin",
+    "SITE_HEADER": "Core Backend",
+    "SITE_URL": "/",
+    "SITE_ICON": lambda request: static("img/logo.svg"),  # both modes, optimally SVG format
+    # "SITE_ICON": {
+    #     "light": lambda request: static("img/logo-light.svg"),  # light mode
+    #     "dark": lambda request: static("img/logo-dark.svg"),  # dark mode
+    # },
+    "SITE_LOGO": lambda request: static("img/logo.svg"),  # both modes, optimally SVG format
+    # "SITE_LOGO": {
+    #     "light": lambda request: static("img/logo-light.svg"),  # light mode
+    #     "dark": lambda request: static("img/logo-dark.svg"),  # dark mode
+    # },
+    "SITE_SYMBOL": "speed",  # symbol from icon set
+    "SHOW_HISTORY": True, # show/hide "History" button, default: True
+    "SHOW_VIEW_ON_SITE": True, # show/hide "View on site" button, default: True
+    "ENVIRONMENT": "core.utils.environment_callback",
+    "DASHBOARD_CALLBACK": "core.utils.dashboard_callback",
+    "LOGIN": {
+        "image": lambda request: static("img/login-bg.jpg"),
+        "redirect_after": lambda request: reverse_lazy("admin:index"),
+    },
+    "STYLES": [
+        lambda request: static("css/styles.css"),
+    ],
+    "SCRIPTS": [
+        lambda request: static("js/script.js"),
+    ],
+    "COLORS": {
+        "primary": {
+            "50": "250 245 255",
+            "100": "243 232 255", 
+            "200": "233 213 255",
+            "300": "216 180 254",
+            "400": "196 141 253",
+            "500": "168 85 247",
+            "600": "147 51 234",
+            "700": "126 34 206",
+            "800": "107 33 168",
+            "900": "88 28 135",
+            "950": "59 7 100",
+        },
+    },
+    "EXTENSIONS": {
+        "modeltranslation": {
+            "flags": {
+                "en": "🇺🇸",
+                "fr": "🇫🇷",
+                "nl": "🇳🇱",
+            },
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,  # Search in applications and models names
+        "show_all_applications": True,  # Dropdown with all applications and models
+        "navigation": [
+            {
+                "title": _("Navigation"),
+                "separator": True,  # Top border
+                "items": [
+                    {
+                        "title": _("Dashboard"),
+                        "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
+                        "link": reverse_lazy("admin:index"),
+                        "permission": lambda request: request.user.is_superuser,
+                    },
+                ],
+            },
+            {
+                "title": _("Users & Authentication"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Users"),
+                        "icon": "people",
+                        "link": reverse_lazy("admin:users_user_changelist"),
+                    },
+                    {
+                        "title": _("Groups"),
+                        "icon": "group",
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("System"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Sessions"),
+                        "icon": "schedule",
+                        "link": reverse_lazy("admin:sessions_session_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+    "TABS": [
+        {
+            "models": [
+                "users.user",
+            ],
+            "items": [
+                {
+                    "title": _("User Details"),
+                    "icon": "person",
+                    "link": reverse_lazy("admin:users_user_changelist"),
+                },
+                {
+                    "title": _("User Groups"),
+                    "icon": "group",
+                    "link": reverse_lazy("admin:auth_group_changelist"),
+                },
+            ],
+        },
+    ],
 }
