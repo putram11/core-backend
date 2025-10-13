@@ -1,126 +1,132 @@
-# Core Backend Development Commands
+# Development commands for Core Backend
 
-# Set up and run the development environment with logs
+# Variables
+set dotenv-load := true
+
+# Default recipe - show help
+default:
+    @just --list
+
+# Start development environment
 up:
+    docker-compose -f docker-compose.dev.yml up --build
+
+# Start development environment in background  
+dev:
     docker-compose -f docker-compose.dev.yml up --build -d
-    @echo "🚀 Development environment is running at http://localhost:8000"
-    @echo "📊 Admin panel: http://localhost:8000/admin"
-    @echo "📋 API Docs (Swagger): http://localhost:8000/api/docs/"
-    @echo "📖 API Docs (ReDoc): http://localhost:8000/api/redoc/"
+    @echo "🚀 Development environment is running!"
+    @echo "📊 Django Admin: http://localhost:8000/admin"
+    @echo "📋 API Docs: http://localhost:8000/api/docs/"
+    @echo "📖 ReDoc: http://localhost:8000/api/redoc/"
     @echo "🔍 Health Check: http://localhost:8000/api/health/"
-    @echo "🗄️  PostgreSQL: localhost:5432"
+    @echo "🗄️  Database: localhost:5432"
     @echo "🔥 Redis: localhost:6379"
     @echo ""
-    @echo "📄 Showing logs (Ctrl+C to stop watching logs):"
-    @sleep 3
-    docker-compose -f docker-compose.dev.yml logs -f web
+    @echo "Use 'just logs' to view logs"
+    @echo "Use 'just down' to stop services"
 
 # Stop all services
 down:
     docker-compose -f docker-compose.dev.yml down
 
-# Build without running
+# Stop and clean up everything
+clean:
+    docker-compose -f docker-compose.dev.yml down -v --remove-orphans
+    docker system prune -f
+
+# Build containers
 build:
     docker-compose -f docker-compose.dev.yml build --no-cache
 
-# View logs
+# View logs (default: web service)
 logs service="web":
     docker-compose -f docker-compose.dev.yml logs -f {{service}}
 
-# View all logs (web, db, redis)
+# View all service logs
 logs-all:
     docker-compose -f docker-compose.dev.yml logs -f
 
-# Run Django management commands
+# Django management commands
 manage cmd:
     docker-compose -f docker-compose.dev.yml exec web python manage.py {{cmd}}
 
-# Create and run migrations
+# Run migrations (make + migrate)
 migrate:
     docker-compose -f docker-compose.dev.yml exec web python manage.py makemigrations
     docker-compose -f docker-compose.dev.yml exec web python manage.py migrate
 
+# Reset database (⚠️ deletes all data)
+reset-db:
+    docker-compose -f docker-compose.dev.yml exec web python manage.py flush --noinput
+    just migrate
+
 # Create superuser
 superuser:
     docker-compose -f docker-compose.dev.yml exec web python manage.py createsuperuser
+
+# Django shell
+shell:
+    docker-compose -f docker-compose.dev.yml exec web python manage.py shell
+
+# Container bash shell
+bash:
+    docker-compose -f docker-compose.dev.yml exec web bash
+
+# Testing
+test:
+    docker-compose -f docker-compose.dev.yml exec web python -m pytest
+
+# Run tests with coverage
+test-cov:
+    docker-compose -f docker-compose.dev.yml exec web python -m pytest --cov=. --cov-report=html --cov-report=term
 
 # Generate OpenAPI schema
 schema:
     docker-compose -f docker-compose.dev.yml exec web python manage.py spectacular --color --file schema.yml
     @echo "📋 Schema generated at schema.yml"
 
-# Run tests
-test:
-    docker-compose -f docker-compose.dev.yml exec web python manage.py test
-
-# Run tests with coverage
-test-coverage:
-    docker-compose -f docker-compose.dev.yml exec web coverage run --source='.' manage.py test
-    docker-compose -f docker-compose.dev.yml exec web coverage report
-    docker-compose -f docker-compose.dev.yml exec web coverage html
-
-# Format code with black
+# Code quality
 format:
     docker-compose -f docker-compose.dev.yml exec web black .
+    docker-compose -f docker-compose.dev.yml exec web isort .
 
-# Check code formatting
-check-format:
+# Check code quality
+quality:
     docker-compose -f docker-compose.dev.yml exec web black --check .
+    docker-compose -f docker-compose.dev.yml exec web isort --check-only .
+    docker-compose -f docker-compose.dev.yml exec web flake8 .
 
-# Run linting
+# Run linting only  
 lint:
     docker-compose -f docker-compose.dev.yml exec web flake8 .
 
-# Check imports
-check-imports:
-    docker-compose -f docker-compose.dev.yml exec web isort --check-only .
-
-# Fix imports
-fix-imports:
-    docker-compose -f docker-compose.dev.yml exec web isort .
-
-# Run all quality checks
-quality-check:
-    just check-format
-    just check-imports
-    just lint
-    just test
-
-# Clean up containers and images
-clean:
-    docker-compose -f docker-compose.dev.yml down -v
-    docker system prune -f
-
-# Enter web container shell
-shell:
-    docker-compose -f docker-compose.dev.yml exec web bash
-
-# Enter postgres shell
+# Database operations
 db-shell:
     docker-compose -f docker-compose.dev.yml exec db psql -U postgres -d core_backend
 
-# Run production build
-build-prod:
-    docker-compose -f docker-compose.prod.yml build
-
-# Backup database
-backup:
-    mkdir -p backups
-    docker-compose -f docker-compose.dev.yml exec db pg_dump -U postgres core_backend > backups/backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Restore database from backup
-restore file:
-    docker-compose -f docker-compose.dev.yml exec db psql -U postgres core_backend < {{file}}
-
-# Show container status
-status:
+# Container status
+ps:
     docker-compose -f docker-compose.dev.yml ps
 
-# Show resource usage
-stats:
-    docker stats
+# Show all available commands
+help:
+    @just --list
 
-# Update dependencies
-update-deps:
-    pip-compile requirements.in
-    pip-compile requirements-dev.in
+# Production commands
+prod-build:
+    docker-compose -f docker-compose.yml build
+
+prod-up:
+    docker-compose -f docker-compose.yml up -d
+
+prod-down:
+    docker-compose -f docker-compose.yml down
+
+# Install pre-commit hooks
+install-hooks:
+    pre-commit install
+    pre-commit install --hook-type commit-msg
+
+# Run pre-commit on all files
+pre-commit:
+    pre-commit run --all-files
