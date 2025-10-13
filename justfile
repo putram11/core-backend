@@ -1,132 +1,174 @@
-# Development commands for Core Backend
+export COMPOSE_FILE := "docker-compose.dev.yml"
 
-# Variables
-set dotenv-load := true
+## Just does not yet manage signals for subprocesses reliably, which can lead to unexpected behavior.
+## Exercise caution before expanding its usage in production environments.
+## For more information, see https://github.com/casey/just/issues/2473 .
 
-# Default recipe - show help
+# Default command to list all available commands.
 default:
     @just --list
 
-# Start development environment
-up:
-    docker-compose -f docker-compose.dev.yml up --build
-
-# Start development environment in background  
-dev:
-    docker-compose -f docker-compose.dev.yml up --build -d
-    @echo "🚀 Development environment is running!"
-    @echo "📊 Django Admin: http://localhost:8000/admin"
-    @echo "📋 API Docs: http://localhost:8000/api/docs/"
-    @echo "📖 ReDoc: http://localhost:8000/api/redoc/"
-    @echo "🔍 Health Check: http://localhost:8000/api/health/"
-    @echo "🗄️  Database: localhost:5432"
-    @echo "🔥 Redis: localhost:6379"
-    @echo ""
-    @echo "Use 'just logs' to view logs"
-    @echo "Use 'just down' to stop services"
-
-# Stop all services
-down:
-    docker-compose -f docker-compose.dev.yml down
-
-# Stop and clean up everything
-clean:
-    docker-compose -f docker-compose.dev.yml down -v --remove-orphans
-    docker system prune -f
-
-# Build containers
+# build: Build python image.
 build:
-    docker-compose -f docker-compose.dev.yml build --no-cache
+    @echo "Building python image..."
+    @docker compose build
 
-# View logs (default: web service)
-logs service="web":
-    docker-compose -f docker-compose.dev.yml logs -f {{service}}
+# up: Start up containers.
+up:
+    @echo "Starting up containers..."
+    @docker compose up --remove-orphans
 
-# View all service logs
-logs-all:
-    docker-compose -f docker-compose.dev.yml logs -f
+# down: Stop containers.
+down:
+    @echo "Stopping containers..."
+    @docker compose down
 
-# Django management commands
-manage cmd:
-    docker-compose -f docker-compose.dev.yml exec web python manage.py {{cmd}}
+# prune: Remove containers and their volumes.
+prune *args:
+    @echo "Killing containers and removing volumes..."
+    @docker compose down -v {{args}}
 
-# Run migrations (make + migrate)
-migrate:
-    docker-compose -f docker-compose.dev.yml exec web python manage.py makemigrations
-    docker-compose -f docker-compose.dev.yml exec web python manage.py migrate
+# logs: View container logs
+logs *args:
+    @docker compose logs -f {{args}}
 
-# Reset database (⚠️ deletes all data)
-reset-db:
-    docker-compose -f docker-compose.dev.yml exec web python manage.py flush --noinput
-    just migrate
+# django: Run a command in the Django container.
+django +args:
+    @docker compose run --rm web {{args}}
+
+# manage: Executes `manage.py` command.
+manage +args:
+    @docker compose run --rm web python ./manage.py {{args}}
+
+# shell: Run bash shell in Django container.
+shell:
+    @docker compose run --rm web bash
+
+# django-shell: Run Django shell.
+django-shell:
+    @docker compose run --rm web python manage.py shell
+
+# test: Run tests.
+test:
+    @docker compose run --rm web python manage.py test
+
+# lint: Check code with flake8.
+lint:
+    @docker compose run --rm web flake8 .
+
+# collectstatic: Collect static files.
+collectstatic:
+    @docker compose run --rm web python manage.py collectstatic --noinput
 
 # Create superuser
-superuser:
-    docker-compose -f docker-compose.dev.yml exec web python manage.py createsuperuser
+createsuperuser:
+    @docker compose run --rm web python manage.py createsuperuser
 
-# Django shell
-shell:
-    docker-compose -f docker-compose.dev.yml exec web python manage.py shell
+# Format code with black
+format:
+    @docker compose run --rm web black .
 
-# Container bash shell
-bash:
-    docker-compose -f docker-compose.dev.yml exec web bash
+# Check code formatting
+check-format:
+    @docker compose run --rm web black --check .
 
-# Testing
-test:
-    docker-compose -f docker-compose.dev.yml exec web python -m pytest
+# Check imports
+check-imports:
+    @docker compose run --rm web isort --check-only .
 
-# Run tests with coverage
-test-cov:
-    docker-compose -f docker-compose.dev.yml exec web python -m pytest --cov=. --cov-report=html --cov-report=term
+# Fix imports
+fix-imports:
+    @docker compose run --rm web isort .
+
+# migrations: Run Django migrations
+migrations:
+    @echo "🚀 Running migrations..."
+    @docker compose run --rm web python manage.py migrate
+
+# makemigrations: Create new migrations
+makemigrations *args:
+    @echo "📝 Creating migrations..."
+    @docker compose run --rm web python manage.py makemigrations {{args}}
+
+# showmigrations: Show migration status
+showmigrations:
+    @echo "📋 Migration status:"
+    @docker compose run --rm web python manage.py showmigrations
+
+# migrate-zero: Reset migrations to zero state
+migrate-zero app:
+    @echo "⏪ Resetting {{app}} migrations to zero..."
+    @docker compose run --rm web python manage.py migrate {{app}} zero
 
 # Generate OpenAPI schema
 schema:
-    docker-compose -f docker-compose.dev.yml exec web python manage.py spectacular --color --file schema.yml
+    @docker compose run --rm web python manage.py spectacular --color --file schema.yml
     @echo "📋 Schema generated at schema.yml"
 
-# Code quality
-format:
-    docker-compose -f docker-compose.dev.yml exec web black .
-    docker-compose -f docker-compose.dev.yml exec web isort .
+# Run tests with coverage
+test-coverage:
+    @docker compose run --rm web coverage run --source='.' manage.py test
+    @docker compose run --rm web coverage report
+    @docker compose run --rm web coverage html
 
-# Check code quality
-quality:
-    docker-compose -f docker-compose.dev.yml exec web black --check .
-    docker-compose -f docker-compose.dev.yml exec web isort --check-only .
-    docker-compose -f docker-compose.dev.yml exec web flake8 .
+# Run all quality checks
+quality-check:
+    just check-format
+    just check-imports
+    just lint
+    just test
 
-# Run linting only  
-lint:
-    docker-compose -f docker-compose.dev.yml exec web flake8 .
+# Clean up containers and images
+clean:
+    @docker compose down -v
+    @docker system prune -f
 
-# Database operations
+# Show container status
+status:
+    @docker compose ps
+
+# Show resource usage
+stats:
+    @docker stats
+
+# Enter postgres shell (need running container)
 db-shell:
-    docker-compose -f docker-compose.dev.yml exec db psql -U postgres -d core_backend
+    @docker compose exec db psql -U postgres -d core_backend_dev
 
-# Container status
-ps:
-    docker-compose -f docker-compose.dev.yml ps
+# Reset database (drop and recreate with migrations)
+reset-db:
+    @echo "🗑️  Dropping database..."
+    @docker compose exec db dropdb -U postgres --if-exists core_backend_dev
+    @echo "🔨 Creating fresh database..."
+    @docker compose exec db createdb -U postgres core_backend_dev
+    @echo "🚀 Running migrations..."
+    @docker compose run --rm web python manage.py migrate
+    @echo "✅ Database reset complete!"
 
-# Show all available commands
-help:
-    @just --list
+# reset: Reset database and start fresh (shortcut)
+reset:
+    @echo "🔄 Resetting everything..."
+    @docker compose down -v
+    @docker compose up -d db redis
+    @sleep 3
+    @echo "🚀 Running migrations..."
+    @docker compose run --rm web python manage.py migrate
+    @echo "✅ Reset complete! Use 'just up' to start all services."
 
-# Production commands
-prod-build:
-    docker-compose -f docker-compose.yml build
+# Backup database
+backup:
+    @mkdir -p backups
+    @docker compose exec db pg_dump -U postgres core_backend_dev > backups/backup_$(date +%Y%m%d_%H%M%S).sql
 
-prod-up:
-    docker-compose -f docker-compose.yml up -d
-
-prod-down:
-    docker-compose -f docker-compose.yml down
+# Restore database from backup
+restore file:
+    @docker compose exec db psql -U postgres core_backend_dev < {{file}}
 
 # Install pre-commit hooks
 install-hooks:
-    pre-commit install
-    pre-commit install --hook-type commit-msg
+    @pre-commit install
+    @pre-commit install --hook-type commit-msg
 
 # Run pre-commit on all files
 pre-commit:
-    pre-commit run --all-files
+    @pre-commit run --all-files

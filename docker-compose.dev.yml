@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   db:
@@ -12,21 +10,30 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
+    restart: unless-stopped
 
   # Redis Cache
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
 
   # Django Web Application (Development)
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - DEV=true
     command: >
       sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
+      - /app/venv  # Exclude venv from volume mount
     ports:
       - "8000:8000"
     depends_on:
@@ -34,10 +41,60 @@ services:
       - redis
     environment:
       - DEBUG=True
-      - SECRET_KEY=dev-secret-key-for-docker-development
+      - SECRET_KEY=dev-secret-key-for-docker-development-very-long-and-secure
       - DATABASE_URL=postgres://postgres:postgres@db:5432/core_backend_dev
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
       - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+    restart: unless-stopped
+
+  # Celery Worker
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - DEV=true
+    command: celery -A core worker -l info
+    volumes:
+      - .:/app
+      - /app/venv
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key-for-docker-development-very-long-and-secure
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/core_backend_dev
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    restart: unless-stopped
+
+  # Celery Beat Scheduler
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - DEV=true
+    command: celery -A core beat -l info
+    volumes:
+      - .:/app
+      - /app/venv
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key-for-docker-development-very-long-and-secure
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/core_backend_dev
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  redis_data:

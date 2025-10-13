@@ -1,0 +1,162 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: core_backend_test
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+          
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Set up environment variables
+      run: |
+        echo "DEBUG=True" >> .env
+        echo "SECRET_KEY=test-secret-key-for-ci-very-long-and-secure" >> .env
+        echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/core_backend_test" >> .env
+        echo "REDIS_URL=redis://localhost:6379/0" >> .env
+        echo "CELERY_BROKER_URL=redis://localhost:6379/0" >> .env
+        echo "CELERY_RESULT_BACKEND=redis://localhost:6379/0" >> .env
+        echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> .env
+    
+    - name: Run Django system checks
+      run: python manage.py check --deploy
+    
+    - name: Run security checks with bandit
+      run: bandit -r . -x tests/,migrations/,venv/,.venv/ -f json -o bandit-report.json || true
+    
+    - name: Run linting with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+    
+    - name: Check code formatting with black
+      run: black --check --diff .
+    
+    - name: Check import sorting with isort
+      run: isort --check-only --diff .
+    
+    - name: Run database migrations
+      run: python manage.py migrate
+    
+    - name: Run tests with coverage
+      run: |
+        coverage run -m pytest -v
+        coverage report --show-missing
+        coverage xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build development Docker image
+      run: |
+        docker-compose -f docker-compose.dev.yml build
+    
+    - name: Test Docker containers startup
+      run: |
+        docker-compose -f docker-compose.dev.yml up -d
+        sleep 30
+        # Check if web service is healthy
+        docker-compose -f docker-compose.dev.yml exec -T web python manage.py check
+        # Run a simple test to ensure everything works
+        docker-compose -f docker-compose.dev.yml exec -T web python -c "import django; django.setup(); print('Django setup successful')"
+        docker-compose -f docker-compose.dev.yml down
+
+  lint-and-security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install linting dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black flake8 isort bandit
+    
+    - name: Run black
+      run: black --check .
+    
+    - name: Run isort
+      run: isort --check-only .
+    
+    - name: Run flake8
+      run: flake8 .
+    
+    - name: Run bandit security linter
+      run: bandit -r . -x tests/,migrations/,venv/,.venv/
