@@ -30,6 +30,7 @@ urlpatterns = [
     # API endpoints
     path('api/auth/', include('users.urls')),
     path('api/', include('api.urls')),
+    path('brokers/', include('brokers.urls')),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

@@ -65,6 +65,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     'users',
     'api',
+    'brokers',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -411,6 +412,38 @@ UNFOLD = {
                         "title": _("Groups"),
                         "icon": "group",
                         "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Brokers & Marketplace"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Categories"),
+                        "icon": "category",
+                        "link": reverse_lazy("admin:brokers_category_changelist"),
+                    },
+                    {
+                        "title": _("Products"),
+                        "icon": "shopping_cart",
+                        "link": reverse_lazy("admin:brokers_product_changelist"),
+                    },
+                    {
+                        "title": _("Product Images"),
+                        "icon": "image",
+                        "link": reverse_lazy("admin:brokers_productimage_changelist"),
+                    },
+                    {
+                        "title": _("Product Views"),
+                        "icon": "visibility",
+                        "link": reverse_lazy("admin:brokers_productview_changelist"),
+                    },
+                    {
+                        "title": _("Product Inquiries"),
+                        "icon": "help",
+                        "link": reverse_lazy("admin:brokers_productinquiry_changelist"),
                     },
                 ],
             },
