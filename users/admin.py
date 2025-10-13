@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from unfold.admin import ModelAdmin
-from unfold.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
 from .models import User
 
 
@@ -14,10 +13,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     warn_unsaved_form = True
     compressed_fields = True
     
-    # Forms for Unfold
-    form = UserChangeForm
-    add_form = UserCreationForm
-    change_password_form = AdminPasswordChangeForm
+    # Forms for Unfold - using default Django forms for now
     
     # Display settings
     list_display = ('email', 'username', 'first_name', 'last_name', 'is_staff', 'is_active', 'created_at')

@@ -349,7 +349,6 @@ UNFOLD = {
     "ENVIRONMENT": "core.utils.environment_callback",
     "DASHBOARD_CALLBACK": "core.utils.dashboard_callback",
     "LOGIN": {
-        "image": lambda request: static("img/login-bg.jpg"),
         "redirect_after": lambda request: reverse_lazy("admin:index"),
     },
     "STYLES": [
@@ -415,18 +414,7 @@ UNFOLD = {
                     },
                 ],
             },
-            {
-                "title": _("System"),
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": _("Sessions"),
-                        "icon": "schedule",
-                        "link": reverse_lazy("admin:sessions_session_changelist"),
-                    },
-                ],
-            },
+
         ],
     },
     "TABS": [

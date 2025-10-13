@@ -9,8 +9,8 @@ def environment_callback(request):
     return ["Development", "success"]  # [text, color]
 
 
-def dashboard_callback(request):
+def dashboard_callback(request, context):
     """
     Callback for dashboard customization
     """
-    return []  # Return empty list for now, can be extended with widgets
+    return context  # Return the context dict as expected by Unfold
