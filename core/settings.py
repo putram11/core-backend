@@ -73,6 +73,7 @@ LOCAL_APPS = [
     'users',
     'api',
     'brokers',
+    'profiles',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -177,8 +178,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Custom User Model
-AUTH_USER_MODEL = 'users.User'
+# Using Django's built-in User model with Profile extension
+# AUTH_USER_MODEL = 'users.User'  # Commented out to use Django's default User
 
 # JWT Settings
 # SIMPLE_JWT = {
