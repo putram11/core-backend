@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
+    env_file: .env
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8000}:8000"  # Expose port for external nginx
+    volumes:
+      - ./static:/app/staticfiles  # Host mount for nginx access
+      - ./media:/app/media  # Host mount for nginx access  
+      - ./logs:/app/logs  # Host mount for log access
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - GUNICORN_WORKERS=${GUNICORN_WORKERS:-3}
+      - GUNICORN_TIMEOUT=${GUNICORN_TIMEOUT:-120}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Security options
+    cap_drop:
+      - ALL
+    read_only: false  # Django needs to write to media/logs
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
