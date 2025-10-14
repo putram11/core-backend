@@ -268,26 +268,55 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# Security settings
+# Security settings (env-driven)
+SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
+USE_SECURE_PROXY_SSL_HEADER = env.bool('USE_SECURE_PROXY_SSL_HEADER', default=True)
+USE_X_FORWARDED_HOST = env.bool('USE_X_FORWARDED_HOST', default=True)
+
 if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_SECONDS = 86400
+    SECURE_BROWSER_XSS_FILTER = env.bool('SECURE_BROWSER_XSS_FILTER', True)
+    SECURE_CONTENT_TYPE_NOSNIFF = env.bool('SECURE_CONTENT_TYPE_NOSNIFF', True)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', True)
+    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', 86400)
     SECURE_REDIRECT_EXEMPT = []
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', True)
+    CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', True)
+    SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', True)
 
+# If SSL is terminated by a proxy (nginx), ensure proxy header is honored
+if USE_SECURE_PROXY_SSL_HEADER:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-CSRF_TRUSTED_ORIGINS = [
-    "https://tanipintar.unklab.id",
-    "https://dev-api.taniverse.id",
-    "https://dev.api.taniverse.id",
-    "https://api-corebackend.kancralabs.com",
-    "https://kancralabs.com",
-]
+# Respect X-Forwarded-Host if front proxy sets it
+USE_X_FORWARDED_HOST = USE_X_FORWARDED_HOST
+
+# Normalize CSRF_TRUSTED_ORIGINS from env (accepts comma-separated string or list)
+_env_csrf = env('CSRF_TRUSTED_ORIGINS', default=None)
+if _env_csrf:
+    if isinstance(_env_csrf, (list, tuple)):
+        raw_origins = _env_csrf
+    else:
+        raw_origins = [h.strip() for h in str(_env_csrf).split(',') if h.strip()]
+
+    def _norm_origin(o: str) -> str:
+        o = o.strip()
+        if o.startswith('http://') or o.startswith('https://'):
+            return o
+        return f'https://{o}'
+
+    CSRF_TRUSTED_ORIGINS = [_norm_origin(h) for h in raw_origins]
+else:
+    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+        "https://tanipintar.unklab.id",
+        "https://dev-api.taniverse.id",
+        "https://dev.api.taniverse.id",
+        "https://api-corebackend.kancralabs.com",
+        "https://kancralabs.com",
+    ])
+
+# sensible cookie samesite defaults
+SESSION_COOKIE_SAMESITE = env.str('SESSION_COOKIE_SAMESITE', default='Lax')
+CSRF_COOKIE_SAMESITE = env.str('CSRF_COOKIE_SAMESITE', default='Lax')
 
 # Celery Configuration
 CELERY_BROKER_URL = env('REDIS_URL')
