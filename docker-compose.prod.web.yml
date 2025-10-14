@@ -35,8 +35,7 @@ services:
         echo '🚀 Starting Gunicorn...' &&
         su django -c 'gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-3} --timeout ${GUNICORN_TIMEOUT:-120}'
       "
-    cap_drop:
-      - ALL
+    cap_drop: []
     read_only: false
     tmpfs:
       - /tmp:noexec,nosuid,size=100m
