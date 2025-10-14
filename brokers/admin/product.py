@@ -130,23 +130,6 @@ class ProductAdmin(ModelAdmin):
         queryset.update(is_featured=True)
         self.message_user(request, f"{queryset.count()} produk ditandai sebagai unggulan.")
     mark_as_featured.short_description = "Tandai sebagai produk unggulan"
-    
-    # EKSPLISIT PERMISSIONS UNTUK CRUD
-    def has_add_permission(self, request):
-        """PASTIKAN BUTTON CREATE MUNCUL!"""
-        return True
-    
-    def has_change_permission(self, request, obj=None):
-        """PASTIKAN BISA EDIT!"""
-        return True
-    
-    def has_delete_permission(self, request, obj=None):
-        """PASTIKAN BISA DELETE!"""
-        return True
-    
-    def has_view_permission(self, request, obj=None):
-        """PASTIKAN BISA VIEW!"""
-        return True
 
 
 @admin.register(ProductImage)
@@ -163,20 +146,12 @@ class ProductImageAdmin(ModelAdmin):
             obj.image.url
         )
 
-
 @admin.register(ProductView)
 class ProductViewAdmin(ModelAdmin):
     list_display = ['product', 'ip_address', 'session_key', 'viewed_at']
     list_filter = ['viewed_at', 'product__category']
     search_fields = ['product__title', 'ip_address']
     readonly_fields = ['product', 'ip_address', 'user_agent', 'session_key', 'viewed_at']
-    
-    def has_add_permission(self, request):
-        return False
-    
-    def has_change_permission(self, request, obj=None):
-        return False
-
 
 @admin.register(ProductInquiry)
 class ProductInquiryAdmin(ModelAdmin):

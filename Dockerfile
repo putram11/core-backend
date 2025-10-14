@@ -40,14 +40,21 @@ RUN if [ "$DEV" = "true" ]; then \
 # Copy project
 COPY . .
 
-# Create directories and change ownership
+# Copy entrypoint and make it executable
+COPY scripts/entrypoint.sh /app/scripts/entrypoint.sh
+RUN chmod +x /app/scripts/entrypoint.sh
+
+# Create directories and change ownership for build-time
 RUN mkdir -p /app/static /app/media /app/logs \
-    && chown -R django:django /app
+    && chown -R django:django /app || true
 
 # Collect static files (for production)
 RUN if [ "$DEV" != "true" ]; then \
         python manage.py collectstatic --noinput; \
     fi
+
+# Use the entrypoint to ensure runtime directories have correct ownership
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 
 # Switch to django user
 USER django
