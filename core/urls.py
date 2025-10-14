@@ -23,6 +23,7 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from rest_framework.permissions import AllowAny
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,9 +34,12 @@ urlpatterns = [
     path('brokers/', include('brokers.urls')),
     
     # API Documentation
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # Public API documentation (allow unauthenticated access)
+    path('api/schema/', SpectacularAPIView.as_view(permission_classes=[AllowAny]), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema', permission_classes=[AllowAny]), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema', permission_classes=[AllowAny]), name='redoc'),
+
+    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 
 # Serve media files in development
