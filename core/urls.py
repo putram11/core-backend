@@ -29,9 +29,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     
     # API endpoints
-    path('api/auth/', include('users.urls')),
     path('api/', include('api.urls')),
     path('brokers/', include('brokers.urls')),
+    path('', include('profiles.urls')),  # Profile management endpoints
     
     # API Documentation
     # Public API documentation (allow unauthenticated access)
