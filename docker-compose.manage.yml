@@ -1,0 +1,37 @@
+version: '3.8'
+
+# This compose file is for running Django management commands
+# without starting the full web service or depending on other services
+#
+# Usage examples:
+# docker compose -f docker-compose.manage.yml run --rm manage migrate
+# docker compose -f docker-compose.manage.yml run --rm manage createsuperuser
+# docker compose -f docker-compose.manage.yml run --rm manage collectstatic --noinput
+# docker compose -f docker-compose.manage.yml run --rm manage shell
+
+services:
+  manage:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
+    env_file: .env
+    volumes:
+      - ./static:/app/staticfiles
+      - ./media:/app/media  
+      - ./logs:/app/logs
+    environment:
+      - DJANGO_SETTINGS_MODULE=core.settings
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+    # Override entrypoint to directly run manage.py commands
+    entrypoint: ["python", "manage.py"]
+    # No restart policy - this is for one-off commands
+    restart: "no"
+    profiles:
+      - tools
