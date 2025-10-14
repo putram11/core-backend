@@ -11,7 +11,7 @@ services:
     ports:
       - "${WEB_PORT:-8000}:8000"
     volumes:
-      - ./static:/app/static  # tempat collectstatic output
+      - ./static:/app/static
       - ./media:/app/media
       - ./logs:/app/logs
     environment:
@@ -23,13 +23,15 @@ services:
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - GUNICORN_WORKERS=${GUNICORN_WORKERS:-3}
       - GUNICORN_TIMEOUT=${GUNICORN_TIMEOUT:-120}
-    user: root  # biar chown dan collectstatic bisa jalan
+    user: root
     command: >
       sh -c "
         echo '🧹 Collecting static files...' &&
         python manage.py collectstatic --noinput &&
-        echo '🔧 Fixing permissions...' &&
-        chown -R django:django /app &&
+        echo '🔧 Fixing permissions for writable dirs...' &&
+        for dir in /app/static /app/media /app/logs; do
+          chown -R django:django $dir || true
+        done &&
         echo '🚀 Starting Gunicorn...' &&
         su django -c 'gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers ${GUNICORN_WORKERS:-3} --timeout ${GUNICORN_TIMEOUT:-120}'
       "
