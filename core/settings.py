@@ -278,6 +278,25 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_PRELOAD = True
 
+# CSRF Configuration
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+if env('CSRF_COOKIE_SECURE', default=False):
+    CSRF_COOKIE_SECURE = True
+if env('CSRF_COOKIE_HTTPONLY', default=False):
+    CSRF_COOKIE_HTTPONLY = True
+if env('CSRF_COOKIE_SAMESITE', default=None):
+    CSRF_COOKIE_SAMESITE = env('CSRF_COOKIE_SAMESITE')
+if env('CSRF_USE_SESSIONS', default=False):
+    CSRF_USE_SESSIONS = True
+
+# Session security configuration
+if env('SESSION_COOKIE_SECURE', default=False):
+    SESSION_COOKIE_SECURE = True
+if env('SESSION_COOKIE_HTTPONLY', default=True):
+    SESSION_COOKIE_HTTPONLY = True
+if env('SESSION_COOKIE_SAMESITE', default=None):
+    SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE')
+
 # Celery Configuration
 CELERY_BROKER_URL = env('REDIS_URL')
 CELERY_RESULT_BACKEND = env('REDIS_URL')
