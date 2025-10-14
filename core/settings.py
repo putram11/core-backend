@@ -251,8 +251,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
-    "https://api-corebackend.kancralabs.com",
-    "https://kancralabs.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -268,55 +266,17 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
-# Security settings (env-driven)
-SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
-USE_SECURE_PROXY_SSL_HEADER = env.bool('USE_SECURE_PROXY_SSL_HEADER', default=True)
-USE_X_FORWARDED_HOST = env.bool('USE_X_FORWARDED_HOST', default=True)
-
+# Security settings
 if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = env.bool('SECURE_BROWSER_XSS_FILTER', True)
-    SECURE_CONTENT_TYPE_NOSNIFF = env.bool('SECURE_CONTENT_TYPE_NOSNIFF', True)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', True)
-    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', 86400)
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_SECONDS = 86400
     SECURE_REDIRECT_EXEMPT = []
-    SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', True)
-    CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', True)
-    SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', True)
-
-# If SSL is terminated by a proxy (nginx), ensure proxy header is honored
-if USE_SECURE_PROXY_SSL_HEADER:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# Respect X-Forwarded-Host if front proxy sets it
-USE_X_FORWARDED_HOST = USE_X_FORWARDED_HOST
-
-# Normalize CSRF_TRUSTED_ORIGINS from env (accepts comma-separated string or list)
-_env_csrf = env('CSRF_TRUSTED_ORIGINS', default=None)
-if _env_csrf:
-    if isinstance(_env_csrf, (list, tuple)):
-        raw_origins = _env_csrf
-    else:
-        raw_origins = [h.strip() for h in str(_env_csrf).split(',') if h.strip()]
-
-    def _norm_origin(o: str) -> str:
-        o = o.strip()
-        if o.startswith('http://') or o.startswith('https://'):
-            return o
-        return f'https://{o}'
-
-    CSRF_TRUSTED_ORIGINS = [_norm_origin(h) for h in raw_origins]
-else:
-    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
-        "https://tanipintar.unklab.id",
-        "https://dev-api.taniverse.id",
-        "https://dev.api.taniverse.id",
-        "https://api-corebackend.kancralabs.com",
-        "https://kancralabs.com",
-    ])
-
-# sensible cookie samesite defaults
-SESSION_COOKIE_SAMESITE = env.str('SESSION_COOKIE_SAMESITE', default='Lax')
-CSRF_COOKIE_SAMESITE = env.str('CSRF_COOKIE_SAMESITE', default='Lax')
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_PRELOAD = True
 
 # Celery Configuration
 CELERY_BROKER_URL = env('REDIS_URL')
@@ -326,7 +286,7 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-# # Logging
+# Logging
 # LOGGING = {
 #     'version': 1,
 #     'disable_existing_loggers': False,
@@ -366,147 +326,147 @@ CELERY_TIMEZONE = TIME_ZONE
 #     },
 # }
 
-# =============================================================================
-# UNFOLD ADMIN CONFIGURATION
-# =============================================================================
+# # =============================================================================
+# # UNFOLD ADMIN CONFIGURATION
+# # =============================================================================
 
-UNFOLD = {
-    "SITE_TITLE": "Core Backend Admin",
-    "SITE_HEADER": "Core Backend",
-    "SITE_URL": "/",
-    "SITE_ICON": lambda request: static("img/logo.svg"),  # both modes, optimally SVG format
-    # "SITE_ICON": {
-    #     "light": lambda request: static("img/logo-light.svg"),  # light mode
-    #     "dark": lambda request: static("img/logo-dark.svg"),  # dark mode
-    # },
-    "SITE_LOGO": lambda request: static("img/logo.svg"),  # both modes, optimally SVG format
-    # "SITE_LOGO": {
-    #     "light": lambda request: static("img/logo-light.svg"),  # light mode
-    #     "dark": lambda request: static("img/logo-dark.svg"),  # dark mode
-    # },
-    "SITE_SYMBOL": "speed",  # symbol from icon set
-    "SHOW_HISTORY": True, # show/hide "History" button, default: True
-    "SHOW_VIEW_ON_SITE": True, # show/hide "View on site" button, default: True
-    "ENVIRONMENT": "core.utils.environment_callback",
-    "DASHBOARD_CALLBACK": "core.utils.dashboard_callback",
-    "LOGIN": {
-        "redirect_after": lambda request: reverse_lazy("admin:index"),
-    },
-    "STYLES": [
-        lambda request: static("css/styles.css"),
-    ],
-    "SCRIPTS": [
-        lambda request: static("js/script.js"),
-    ],
-    "COLORS": {
-        "primary": {
-            "50": "250 245 255",
-            "100": "243 232 255", 
-            "200": "233 213 255",
-            "300": "216 180 254",
-            "400": "196 141 253",
-            "500": "168 85 247",
-            "600": "147 51 234",
-            "700": "126 34 206",
-            "800": "107 33 168",
-            "900": "88 28 135",
-            "950": "59 7 100",
-        },
-    },
-    "EXTENSIONS": {
-        "modeltranslation": {
-            "flags": {
-                "en": "🇺🇸",
-                "fr": "🇫🇷",
-                "nl": "🇳🇱",
-            },
-        },
-    },
-    "SIDEBAR": {
-        "show_search": True,  # Search in applications and models names
-        "show_all_applications": True,  # Dropdown with all applications and models
-        "navigation": [
-            {
-                "title": _("Navigation"),
-                "separator": True,  # Top border
-                "items": [
-                    {
-                        "title": _("Dashboard"),
-                        "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
-                        "link": reverse_lazy("admin:index"),
-                        "permission": lambda request: request.user.is_superuser,
-                    },
-                ],
-            },
-            {
-                "title": _("Users & Authentication"),
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": _("Users"),
-                        "icon": "people",
-                        "link": reverse_lazy("admin:users_user_changelist"),
-                    },
-                    {
-                        "title": _("Groups"),
-                        "icon": "group",
-                        "link": reverse_lazy("admin:auth_group_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": _("Brokers & Marketplace"),
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": _("Categories"),
-                        "icon": "category",
-                        "link": reverse_lazy("admin:brokers_category_changelist"),
-                    },
-                    {
-                        "title": _("Products"),
-                        "icon": "shopping_cart",
-                        "link": reverse_lazy("admin:brokers_product_changelist"),
-                    },
-                    {
-                        "title": _("Product Images"),
-                        "icon": "image",
-                        "link": reverse_lazy("admin:brokers_productimage_changelist"),
-                    },
-                    {
-                        "title": _("Product Views"),
-                        "icon": "visibility",
-                        "link": reverse_lazy("admin:brokers_productview_changelist"),
-                    },
-                    {
-                        "title": _("Product Inquiries"),
-                        "icon": "help",
-                        "link": reverse_lazy("admin:brokers_productinquiry_changelist"),
-                    },
-                ],
-            },
+# UNFOLD = {
+#     "SITE_TITLE": "Core Backend Admin",
+#     "SITE_HEADER": "Core Backend",
+#     "SITE_URL": "/",
+#     "SITE_ICON": lambda request: static("img/logo.svg"),  # both modes, optimally SVG format
+#     # "SITE_ICON": {
+#     #     "light": lambda request: static("img/logo-light.svg"),  # light mode
+#     #     "dark": lambda request: static("img/logo-dark.svg"),  # dark mode
+#     # },
+#     "SITE_LOGO": lambda request: static("img/logo.svg"),  # both modes, optimally SVG format
+#     # "SITE_LOGO": {
+#     #     "light": lambda request: static("img/logo-light.svg"),  # light mode
+#     #     "dark": lambda request: static("img/logo-dark.svg"),  # dark mode
+#     # },
+#     "SITE_SYMBOL": "speed",  # symbol from icon set
+#     "SHOW_HISTORY": True, # show/hide "History" button, default: True
+#     "SHOW_VIEW_ON_SITE": True, # show/hide "View on site" button, default: True
+#     "ENVIRONMENT": "core.utils.environment_callback",
+#     "DASHBOARD_CALLBACK": "core.utils.dashboard_callback",
+#     "LOGIN": {
+#         "redirect_after": lambda request: reverse_lazy("admin:index"),
+#     },
+#     "STYLES": [
+#         lambda request: static("css/styles.css"),
+#     ],
+#     "SCRIPTS": [
+#         lambda request: static("js/script.js"),
+#     ],
+#     "COLORS": {
+#         "primary": {
+#             "50": "250 245 255",
+#             "100": "243 232 255", 
+#             "200": "233 213 255",
+#             "300": "216 180 254",
+#             "400": "196 141 253",
+#             "500": "168 85 247",
+#             "600": "147 51 234",
+#             "700": "126 34 206",
+#             "800": "107 33 168",
+#             "900": "88 28 135",
+#             "950": "59 7 100",
+#         },
+#     },
+#     "EXTENSIONS": {
+#         "modeltranslation": {
+#             "flags": {
+#                 "en": "🇺🇸",
+#                 "fr": "🇫🇷",
+#                 "nl": "🇳🇱",
+#             },
+#         },
+#     },
+#     "SIDEBAR": {
+#         "show_search": True,  # Search in applications and models names
+#         "show_all_applications": True,  # Dropdown with all applications and models
+#         "navigation": [
+#             {
+#                 "title": _("Navigation"),
+#                 "separator": True,  # Top border
+#                 "items": [
+#                     {
+#                         "title": _("Dashboard"),
+#                         "icon": "dashboard",  # Supported icon set: https://fonts.google.com/icons
+#                         "link": reverse_lazy("admin:index"),
+#                         "permission": lambda request: request.user.is_superuser,
+#                     },
+#                 ],
+#             },
+#             {
+#                 "title": _("Users & Authentication"),
+#                 "separator": True,
+#                 "collapsible": True,
+#                 "items": [
+#                     {
+#                         "title": _("Users"),
+#                         "icon": "people",
+#                         "link": reverse_lazy("admin:users_user_changelist"),
+#                     },
+#                     {
+#                         "title": _("Groups"),
+#                         "icon": "group",
+#                         "link": reverse_lazy("admin:auth_group_changelist"),
+#                     },
+#                 ],
+#             },
+#             {
+#                 "title": _("Brokers & Marketplace"),
+#                 "separator": True,
+#                 "collapsible": True,
+#                 "items": [
+#                     {
+#                         "title": _("Categories"),
+#                         "icon": "category",
+#                         "link": reverse_lazy("admin:brokers_category_changelist"),
+#                     },
+#                     {
+#                         "title": _("Products"),
+#                         "icon": "shopping_cart",
+#                         "link": reverse_lazy("admin:brokers_product_changelist"),
+#                     },
+#                     {
+#                         "title": _("Product Images"),
+#                         "icon": "image",
+#                         "link": reverse_lazy("admin:brokers_productimage_changelist"),
+#                     },
+#                     {
+#                         "title": _("Product Views"),
+#                         "icon": "visibility",
+#                         "link": reverse_lazy("admin:brokers_productview_changelist"),
+#                     },
+#                     {
+#                         "title": _("Product Inquiries"),
+#                         "icon": "help",
+#                         "link": reverse_lazy("admin:brokers_productinquiry_changelist"),
+#                     },
+#                 ],
+#             },
 
-        ],
-    },
-    "TABS": [
-        {
-            "models": [
-                "users.user",
-            ],
-            "items": [
-                {
-                    "title": _("User Details"),
-                    "icon": "person",
-                    "link": reverse_lazy("admin:users_user_changelist"),
-                },
-                {
-                    "title": _("User Groups"),
-                    "icon": "group",
-                    "link": reverse_lazy("admin:auth_group_changelist"),
-                },
-            ],
-        },
-    ],
-}
+#         ],
+#     },
+#     "TABS": [
+#         {
+#             "models": [
+#                 "users.user",
+#             ],
+#             "items": [
+#                 {
+#                     "title": _("User Details"),
+#                     "icon": "person",
+#                     "link": reverse_lazy("admin:users_user_changelist"),
+#                 },
+#                 {
+#                     "title": _("User Groups"),
+#                     "icon": "group",
+#                     "link": reverse_lazy("admin:auth_group_changelist"),
+#                 },
+#             ],
+#         },
+#     ],
+# }
