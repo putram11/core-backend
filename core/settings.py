@@ -251,6 +251,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    "https://api-corebackend.kancralabs.com",
+    "https://kancralabs.com",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -279,7 +281,10 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
 
 # CSRF Configuration
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+    "https://api-corebackend.kancralabs.com",
+    "https://kancralabs.com",
+])
 # if env('CSRF_COOKIE_SECURE', default=False):
 #     CSRF_COOKIE_SECURE = True
 # if env('CSRF_COOKIE_HTTPONLY', default=False):
