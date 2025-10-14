@@ -11,8 +11,8 @@ services:
     ports:
       - "${WEB_PORT:-8000}:8000"
     volumes:
-      - ./static:/app/static
-      - ./media:/app/media
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
       - ./logs:/app/logs
     environment:
       - DJANGO_SETTINGS_MODULE=core.settings
@@ -36,3 +36,7 @@ services:
     read_only: false
     tmpfs:
       - /tmp:noexec,nosuid,size=100m
+
+volumes:
+  static_volume:
+  media_volume:
