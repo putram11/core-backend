@@ -172,3 +172,48 @@ install-hooks:
 # Run pre-commit on all files
 pre-commit:
     @pre-commit run --all-files
+
+# ----------------------------
+# Production helpers (use .env.production)
+# ----------------------------
+
+# Helper: run a command with environment loaded from .env.production
+with-prod +cmd:
+    @echo "Loading .env.production and running: {{cmd}}"
+    @set -a; [ -f .env.production ] && . .env.production || true; set +a; \
+    docker compose -f docker-compose.yml -f docker-compose.prod.web.yml {{cmd}}
+
+# Start production services (detached)
+prod-up:
+    @echo "Starting production services (using .env.production)..."
+    @just with-prod up -d
+
+# Stop production services
+prod-down:
+    @echo "Stopping production services..."
+    @just with-prod down
+
+# View production logs
+prod-logs *args:
+    @just with-prod logs --tail=200 {{args}}
+
+# Run a manage.py command in production (via docker compose run)
+prod-manage +args:
+    @echo "Running manage.py in production: {{args}}"
+    @set -a; [ -f .env.production ] && . .env.production || true; set +a; \
+    docker compose -f docker-compose.yml -f docker-compose.prod.web.yml run --rm web python manage.py {{args}}
+
+# Run migrations in production
+prod-migrate:
+    @echo "Running migrations in production..."
+    @just prod-manage migrate
+
+# Collect static in production
+prod-collectstatic:
+    @echo "Collecting static files in production..."
+    @just prod-manage collectstatic --noinput
+
+# Open shell in production web container
+prod-shell:
+    @set -a; [ -f .env.production ] && . .env.production || true; set +a; \
+    docker compose -f docker-compose.yml -f docker-compose.prod.web.yml run --rm web bash
