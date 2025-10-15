@@ -181,7 +181,7 @@ pre-commit:
 with-prod +cmd:
     @echo "Loading .env.production and running: {{cmd}}"
     @set -a; [ -f .env.production ] && . .env.production || true; set +a; \
-    docker compose -f docker-compose.yml -f docker-compose.prod.web.yml {{cmd}}
+    docker compose -f docker-compose.prod.web.yml {{cmd}}
 
 # Start production services (detached)
 prod-up:
@@ -201,7 +201,7 @@ prod-logs *args:
 prod-manage +args:
     @echo "Running manage.py in production: {{args}}"
     @set -a; [ -f .env.production ] && . .env.production || true; set +a; \
-    docker compose -f docker-compose.yml -f docker-compose.prod.web.yml run --rm web python manage.py {{args}}
+    docker compose -f docker-compose.prod.web.yml run --rm web python manage.py {{args}}
 
 # Run migrations in production
 prod-migrate:
@@ -216,4 +216,4 @@ prod-collectstatic:
 # Open shell in production web container
 prod-shell:
     @set -a; [ -f .env.production ] && . .env.production || true; set +a; \
-    docker compose -f docker-compose.yml -f docker-compose.prod.web.yml run --rm web bash
+    docker compose -f docker-compose.prod.web.yml run --rm web bash
